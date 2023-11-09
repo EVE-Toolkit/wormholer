@@ -11,9 +11,18 @@ import (
 	"github.com/Coaltergeist/discordgo-embeds/colors"
 	"github.com/Coaltergeist/discordgo-embeds/embed"
 	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	if strings.ToLower(os.Getenv("ENV")) != "prod" {
+		err := godotenv.Load("./.env")
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	s, err := discordgo.New("Bot " + os.Getenv("TOKEN"))
 
 	if err != nil {
@@ -29,11 +38,7 @@ func main() {
 			return
 		}
 
-		fmt.Println(m.Message.Content)
-
 		args := strings.Split(strings.Trim(m.Content, "$"), " ")
-
-		fmt.Println(args)
 
 		switch args[0] {
 		case "sell":
@@ -45,6 +50,16 @@ func main() {
 				)
 
 				return 
+			}
+
+			if !strings.Contains(m.Content, "items=") {
+				s.ChannelMessageSendReply(
+					m.ChannelID,
+					"Please specify the items you are selling with `items=your items here` after the hangar option.",
+					m.MessageReference,
+				)
+
+				return
 			}
 
 			err := processSell(s, m, args)
@@ -79,7 +94,12 @@ func main() {
 }
 
 func processSell(s *discordgo.Session, m *discordgo.MessageCreate, args []string) error {
-	hangar := strings.Split(strings.Join(strings.Split(strings.Join(args[1:], " "), "="), ""), "\n")
+	stringified := strings.Join(args, " ")
+
+	hangar := stringified[strings.Index(stringified, "hangar="):strings.Index(stringified, "items=")] 
+	items := stringified[strings.Index(stringified, "items="):]
+
+	fmt.Printf("hangar: %s\n", hangar)
 
 	em := embed.New()
 
@@ -88,11 +108,11 @@ func processSell(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 		fmt.Sprintf(
 			"%s has requested the following items to be sold:\n```%s```",
 			m.Member.Nick,
-			strings.Join(args[1:], " "),
+			strings.TrimPrefix(items, "items="),
 		),
 	)
-	em.AddField("Hangar", strings.TrimPrefix(hangar[0], "hangar"), false)
-	em.SetColor(colors.Red())
+	em.AddField("Hangar", strings.TrimPrefix(hangar, "hangar="), false)
+	em.SetColorRGB(237, 40, 122)
 
 	request, err := s.ChannelMessageSendEmbed(m.ChannelID, em.MessageEmbed)
 
