@@ -7,11 +7,22 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/Coaltergeist/discordgo-embeds/colors"
 	"github.com/Coaltergeist/discordgo-embeds/embed"
 	"github.com/bwmarrin/discordgo"
 )
+
+type Signature struct {
+	ID   string
+	Type string
+	Name string
+}
+
+func (s *Signature) String() string {
+	return fmt.Sprintf("%s (%s) - %s", s.ID, s.Type, s.Name)
+}
 
 func main() {
 	s, err := discordgo.New("Bot " + os.Getenv("TOKEN"))
@@ -25,15 +36,29 @@ func main() {
 	})
 
 	s.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		if !strings.HasPrefix(m.Content, "$") {
+		if !strings.HasPrefix(m.Content, "$") && m.ChannelID != os.Getenv("SCANNING_CHANNEL_ID") {
+			return
+		}
+
+		if m.ChannelID == os.Getenv("SCANNING_CHANNEL_ID") {
+			err := processScan(s, m)
+
+			if err != nil {
+				s.ChannelMessageSendReply(
+					m.ChannelID,
+					"There was an error processing your scan.",
+					m.MessageReference,
+				)
+
+				return
+			}
+
 			return
 		}
 
 		fmt.Println(m.Message.Content)
 
 		args := strings.Split(strings.Trim(m.Content, "$"), " ")
-
-		fmt.Println(args)
 
 		switch args[0] {
 		case "sell":
@@ -44,7 +69,7 @@ func main() {
 					m.MessageReference,
 				)
 
-				return 
+				return
 			}
 
 			err := processSell(s, m, args)
@@ -76,6 +101,78 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 	<-stop
+}
+
+func processScan(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	lines := strings.Split(m.Content, "\n")
+
+	fmt.Println(lines[0])
+
+	if !strings.HasPrefix(lines[0], "system=") {
+		return nil
+	}
+
+	system := strings.Split(lines[0], "=")[1]
+
+	var scanned []string
+	var unscanned []string
+
+	for i, line := range lines[1:] {
+		if line == "" || line == "\n" {
+			lines = append(lines[:i], lines[i+1:]...)
+
+			continue
+		}
+
+		fields := strings.Split(line, "  ")
+
+		for j, field := range fields {
+			if field == "" || field == " " {
+				fields = append(fields[:j], fields[j+1:]...)
+
+				continue
+			}
+		}
+
+		signature := Signature{}
+
+		if len(fields) == 6 && len(strings.Trim(fields[2], " ")) > 0 && len(strings.Trim(fields[3], " ")) > 0 {
+			signature.ID = fields[0]
+			signature.Type = fields[2]
+			signature.Name = fields[3]
+
+			scanned = append(scanned, signature.String())
+		} else if len(strings.Trim(fields[2], " ")) == 0 || len(strings.Trim(fields[3], " ")) == 0 {
+			signature.ID = fields[0]
+			signature.Type = "Unknown"
+			signature.Name = "Unknown"
+
+			unscanned = append(unscanned, signature.String())
+		}
+	}
+
+	em := embed.New()
+
+	em.SetTitle(fmt.Sprintf("New Scan Report - %s (%s)", system, m.Member.Nick))
+	em.SetTimestamp(time.Now())
+	em.SetDescription(fmt.Sprintf("New Scan Report for system **%s** at %s", system, em.Timestamp))
+	em.AddField("Scanned", fmt.Sprintf("```\n%s```", strings.Join(scanned, "\n")), false)
+	em.AddField("Unscanned", fmt.Sprintf("```\n%s```", strings.Join(unscanned, "\n")), false)
+	em.SetColor(colors.Blue())
+
+	_, err := s.ChannelMessageSendEmbed(m.ChannelID, em.MessageEmbed)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.ChannelMessageDelete(m.ChannelID, m.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func processSell(s *discordgo.Session, m *discordgo.MessageCreate, args []string) error {
