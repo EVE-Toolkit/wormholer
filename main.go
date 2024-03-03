@@ -55,7 +55,13 @@ func main() {
 
 		fmt.Println(args)
 
-		switch args[0][:strings.Index(args[0], "=")] {
+		equalsIndex := strings.Index(args[0], "=")
+
+		if equalsIndex < 0 {
+			equalsIndex = len(args) - 1
+		}
+
+		switch args[0][:equalsIndex] {
 		case "system":
 			err := processScan(s, m)
 
