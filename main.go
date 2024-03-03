@@ -123,7 +123,7 @@ func main() {
 }
 
 func processScan(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	lines := strings.Split(m.Content, "\n")
+	lines := strings.Split(strings.Trim(m.Content, "$"), "\n")
 
 	fmt.Println(lines[0])
 
