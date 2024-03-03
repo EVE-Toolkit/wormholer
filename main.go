@@ -45,6 +45,8 @@ func main() {
 	})
 
 	s.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		fmt.Println(m.Content)
+		
 		if !strings.HasPrefix(m.Content, "$") {
 			return
 		}
