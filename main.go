@@ -51,12 +51,10 @@ func main() {
 
 		args := strings.Split(strings.Trim(m.Content, "$"), " ")
 
-		fmt.Println(args)
-
 		equalsIndex := strings.Index(args[0], "=")
 
 		if equalsIndex < 0 {
-			equalsIndex = len(args[0]) - 1
+			equalsIndex = len(args[0])
 		}
 
 		fmt.Println(args[0][:equalsIndex])
