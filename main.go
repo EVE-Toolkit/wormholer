@@ -45,11 +45,14 @@ func main() {
 	})
 
 	s.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		if !strings.HasPrefix(m.Content, "$") && m.ChannelID != os.Getenv("SCANNING_CHANNEL_ID") {
+		if !strings.HasPrefix(m.Content, "$") {
 			return
 		}
 
-		if m.ChannelID == os.Getenv("SCANNING_CHANNEL_ID") {
+		args := strings.Split(strings.Trim(m.Content, "$"), " ")
+
+		switch args[0] {
+		case "system":
 			err := processScan(s, m)
 
 			if err != nil {
@@ -63,11 +66,6 @@ func main() {
 			}
 
 			return
-		}
-
-		args := strings.Split(strings.Trim(m.Content, "$"), " ")
-
-		switch args[0] {
 		case "sell":
 			if !strings.HasPrefix(args[1], "hangar=") {
 				s.ChannelMessageSendReply(
