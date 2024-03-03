@@ -55,7 +55,7 @@ func main() {
 
 		fmt.Println(args)
 
-		switch args[0] {
+		switch args[0][:strings.Index(stringified, "=")] {
 		case "system":
 			err := processScan(s, m)
 
