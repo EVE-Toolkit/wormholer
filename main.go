@@ -58,7 +58,7 @@ func main() {
 		equalsIndex := strings.Index(args[0], "=")
 
 		if equalsIndex < 0 {
-			equalsIndex = len(args) - 1
+			equalsIndex = len(args[0]) - 1
 		}
 
 		switch args[0][:equalsIndex] {
