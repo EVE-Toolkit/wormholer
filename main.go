@@ -51,6 +51,8 @@ func main() {
 
 		args := strings.Split(strings.Trim(m.Content, "$"), " ")
 
+		fmt.Println(args)
+
 		switch args[0] {
 		case "system":
 			err := processScan(s, m)
