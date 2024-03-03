@@ -45,8 +45,6 @@ func main() {
 	})
 
 	s.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		fmt.Println(m.Content)
-		
 		if !strings.HasPrefix(m.Content, "$") {
 			return
 		}
@@ -60,6 +58,8 @@ func main() {
 		if equalsIndex < 0 {
 			equalsIndex = len(args[0]) - 1
 		}
+
+		fmt.Println(args[0][:equalsIndex])
 
 		switch args[0][:equalsIndex] {
 		case "system":
